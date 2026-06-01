@@ -15,6 +15,7 @@ public class AlertNormalizerFactory {
     static {
         register(AlertSourceType.SPLUNK, new SplunkNormalizer());
         register(AlertSourceType.CROWDSTRIKE, new CrowdStrikeNormalizer());
+        register(AlertSourceType.FIREWALL, new FirewallNormalizer());
     }
 
     public static void register(AlertSourceType type, AlertNormalizer normalizer) {
