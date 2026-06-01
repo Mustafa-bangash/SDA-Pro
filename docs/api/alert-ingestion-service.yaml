@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Alert Ingestion Service API
+  description: |
+    Ingests security alerts from heterogeneous sources (Splunk, CrowdStrike, Firewall)
+    and normalizes them into a canonical CanonicalAlert format.
+    
+    Design Patterns Used:
+    - Factory Method: AlertNormalizerFactory creates correct normalizer per source
+    - Singleton: IngestionConfigManager provides single config instance
+    - Composite: Alerts grouped into AlertCampaign and IncidentCluster trees
+  version: 1.0.0
+  contact:
+    name: Student A - Threat Pipeline Engineer
+
+servers:
+  - url: http://localhost:8081
+    description: Local development
+
+tags:
+  - name: Ingestion
+    description: Alert ingestion endpoints for all sources
+  - name: Query
+    description: Query ingested alerts
+  - name: Config
+    description: Singleton config inspection
+  - name: Health
+    description: Service health check
+
+paths:
+
+  /api/v1/alerts/ingest/splunk:
+    post:
+      tags: [Ingestion]
+      summary: Ingest a Splunk SIEM alert
+      description: |
+        Accepts raw Splunk webhook payload and normalizes it using SplunkNormalizer.
+        Pattern - Factory Method: AlertNormalizerFactory.createNormalizer(SPLUNK)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawAlertPayload'
+            example:
+              data: "src_ip=192.168.1.100,dest_ip=10.0.0.5,severity=critical,event_type=RANSOMWARE,message=Ransomware detected"
+      responses:
+        '202':
+          description: Alert accepted and normalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonicalAlert'
+        '503':
+          description: Splunk ingestion disabled in config
+
+  /api/v1/alerts/ingest/crowdstrike:
+    post:
+      tags: [Ingestion]
+      summary: Ingest a CrowdStrike EDR alert
+      description: |
+        Accepts raw CrowdStrike streaming API payload and normalizes it.
+        Pattern - Factory Method: AlertNormalizerFactory.createNormalizer(CROWDSTRIKE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawAlertPayload'
+            example:
+              data: "device_ip=10.0.0.15,target_ip=192.168.1.200,severity_level=95,detection_type=MALWARE,description=Ransomware binary executed"
+      responses:
+        '202':
+          description: Alert accepted and normalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonicalAlert'
+        '503':
+          description: CrowdStrike ingestion disabled in config
+
+  /api/v1/alerts/ingest/firewall:
+    post:
+      tags: [Ingestion]
+      summary: Ingest a Firewall syslog alert
+      description: |
+        Accepts raw firewall syslog payload and normalizes it.
+        Pattern - Factory Method: AlertNormalizerFactory.createNormalizer(FIREWALL)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawAlertPayload'
+            example:
+              data: "action=DENY,src_ip=192.168.1.1,dst_ip=10.0.0.5,dst_port=445,protocol=TCP,rule=BLOCK_SMB,bytes=1024"
+      responses:
+        '202':
+          description: Alert accepted and normalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonicalAlert'
+        '503':
+          description: Firewall ingestion disabled in config
+
+  /api/v1/alerts:
+    get:
+      tags: [Query]
+      summary: Get all ingested alerts
+      responses:
+        '200':
+          description: List of all normalized alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CanonicalAlert'
+
+  /api/v1/alerts/severity/{severity}:
+    get:
+      tags: [Query]
+      summary: Get alerts filtered by severity
+      parameters:
+        - name: severity
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        '200':
+          description: Filtered alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CanonicalAlert'
+
+  /api/v1/alerts/config:
+    get:
+      tags: [Config]
+      summary: Get current ingestion config (Singleton demo)
+      description: Returns the current IngestionConfigManager singleton state
+      responses:
+        '200':
+          description: Current config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionConfig'
+
+  /api/v1/alerts/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
+          content:
+            text/plain:
+              example: alert-ingestion-service is running
+
+components:
+  schemas:
+    RawAlertPayload:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: string
+          description: Raw alert payload in source-specific format
+
+    CanonicalAlert:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [SPLUNK, CROWDSTRIKE, FIREWALL]
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        sourceIp:
+          type: string
+        destinationIp:
+          type: string
+        eventType:
+          type: string
+        summary:
+          type: string
+        detectedAt:
+          type: string
+          format: date-time
+        rawPayload:
+          type: string
+
+    IngestionConfig:
+      type: object
+      properties:
+        maxBatchSize:
+          type: integer
+        pollingIntervalSeconds:
+          type: integer
+        splunkEnabled:
+          type: boolean
+        crowdstrikeEnabled:
+          type: boolean

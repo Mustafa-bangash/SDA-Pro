@@ -1,0 +1,11 @@
+[
+  {
+    "data": "device_ip=10.0.0.15,target_ip=192.168.1.200,severity_level=95,detection_type=MALWARE,description=Ransomware binary executed on endpoint"
+  },
+  {
+    "data": "device_ip=10.0.0.30,target_ip=192.168.1.100,severity_level=75,detection_type=SUSPICIOUS_PROCESS,description=Suspicious PowerShell execution detected"
+  },
+  {
+    "data": "device_ip=10.0.0.45,target_ip=172.16.0.5,severity_level=60,detection_type=CREDENTIAL_DUMP,description=Mimikatz-like behavior detected on workstation"
+  }
+]

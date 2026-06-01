@@ -1,0 +1,11 @@
+[
+  {
+    "data": "action=DENY,src_ip=192.168.1.1,dst_ip=10.0.0.5,dst_port=445,protocol=TCP,rule=BLOCK_SMB,bytes=1024"
+  },
+  {
+    "data": "action=DENY,src_ip=10.0.0.22,dst_ip=192.168.1.50,dst_port=3389,protocol=TCP,rule=BLOCK_RDP,bytes=512"
+  },
+  {
+    "data": "action=ALLOW,src_ip=192.168.1.99,dst_ip=10.0.0.1,dst_port=22,protocol=TCP,rule=SUSPICIOUS,bytes=2048"
+  }
+]
