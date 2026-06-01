@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: Response Orchestration Service API
+  description: |
+    Orchestrates automated incident response actions.
+    
+    Design Patterns Used:
+    - Facade: IncidentResponseFacade provides a simple unified interface.
+    - Strategy: Selects Aggressive or Conservative containment based on severity.
+    - Decorator: Wraps response actions with Audit Logging.
+  version: 1.0.0
+  contact:
+    name: Student B - Integration & Response Engineer
+servers:
+  - url: http://localhost:8084
+    description: Local development
+tags:
+  - name: Response
+    description: Incident response execution endpoints
+paths:
+  /api/v1/response/{incidentId}/assess:
+    post:
+      tags:
+        - Response
+      summary: Assess incident severity and execute response strategy
+      parameters:
+        - name: incidentId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: severity
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      responses:
+        '200':
+          description: Response plan executed successfully
+          content:
+            text/plain:
+              example: "Response plan executed for incident 12345"
+  /api/v1/response/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
