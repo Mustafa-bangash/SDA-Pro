@@ -1,0 +1,147 @@
+version: '3.8'
+
+services:
+
+  # ─────────────────────────────────────────
+  # INFRASTRUCTURE
+  # ─────────────────────────────────────────
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: sdapro-postgres
+    environment:
+      POSTGRES_DB: sdapro
+      POSTGRES_USER: sdapro
+      POSTGRES_PASSWORD: sdapro123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sdapro-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sdapro"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: sdapro-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - sdapro-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: sdapro-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: sdapro
+      RABBITMQ_DEFAULT_PASS: sdapro123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - sdapro-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # STUDENT A SERVICES
+  # ─────────────────────────────────────────
+
+  alert-ingestion-service:
+    build:
+      context: ./services/alert-ingestion-service
+      dockerfile: Dockerfile
+    container_name: sdapro-alert-ingestion
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  enrichment-correlation-service:
+    build:
+      context: ./services/enrichment-correlation-service
+      dockerfile: Dockerfile
+    container_name: sdapro-enrichment
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  incident-management-service:
+    build:
+      context: ./services/incident-management-service
+      dockerfile: Dockerfile
+    container_name: sdapro-incident
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+# ─────────────────────────────────────────
+# VOLUMES AND NETWORKS
+# ─────────────────────────────────────────
+
+volumes:
+  postgres_data:
+
+networks:
+  sdapro-network:
+    driver: bridge
