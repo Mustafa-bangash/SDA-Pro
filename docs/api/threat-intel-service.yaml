@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Threat Intel Service API
+  description: |
+    Integrates external threat intelligence providers.
+    
+    Design Patterns Used:
+    - Adapter: VirusTotalAdapter normalizes external API formats.
+    - Proxy: CachingProxy manages local caching to prevent rate-limiting.
+  version: 1.0.0
+  contact:
+    name: Student B - Integration & Response Engineer
+servers:
+  - url: http://localhost:8085
+    description: Local development
+tags:
+  - name: ThreatIntel
+    description: External intelligence lookups
+paths:
+  /api/v1/threat-intel/reputation:
+    post:
+      tags:
+        - ThreatIntel
+      summary: Check reputation of an IP, domain, or file hash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                indicator:
+                  type: string
+              example:
+                indicator: "192.168.1.100"
+      responses:
+        '200':
+          description: Reputation result returned (from cache or external provider)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  indicator:
+                    type: string
+                  verdict:
+                    type: string
+                  confidenceScore:
+                    type: integer
+  /api/v1/threat-intel/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
