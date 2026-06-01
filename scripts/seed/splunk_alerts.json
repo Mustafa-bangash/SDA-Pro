@@ -1,0 +1,11 @@
+[
+  {
+    "data": "src_ip=192.168.1.100,dest_ip=10.0.0.5,severity=critical,event_type=RANSOMWARE,message=Ransomware detected on endpoint prod-server-01"
+  },
+  {
+    "data": "src_ip=10.0.0.22,dest_ip=172.16.0.1,severity=high,event_type=LOGIN_FAILURE,message=Multiple failed login attempts detected"
+  },
+  {
+    "data": "src_ip=192.168.1.55,dest_ip=10.0.0.8,severity=medium,event_type=PORT_SCAN,message=Port scan detected from internal host"
+  }
+]
