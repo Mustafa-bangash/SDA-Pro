@@ -1,0 +1,154 @@
+@startuml SDA-Pro_Component_Diagram
+!theme plain
+skinparam componentStyle uml2
+title SDA-Pro — SOA Component & Deployment Architecture
+
+actor "SOC Analyst" as Analyst
+actor "Security Engineer" as Engineer
+
+cloud "External Security Infrastructure" {
+  [Splunk SIEM] as Splunk
+  [CrowdStrike EDR] as CrowdStrike
+  [Palo Alto Firewall] as Firewall
+  [VirusTotal API] as VT
+  [MISP Platform] as MISP
+}
+
+cloud "Enterprise Systems" {
+  [Active Directory] as AD
+  [Email Gateway] as Email
+  [Slack Workspace] as Slack
+  [PagerDuty] as PagerDuty
+}
+
+node "Message Bus" #LightGray {
+  [RabbitMQ] as MessageBus
+}
+
+node "Data Layer" #LightGray {
+  database "PostgreSQL" {
+    [Incident Records] as IncDB
+    [Alert Archive] as AlertDB
+    [Audit Logs] as AuditDB
+  }
+  database "Redis" {
+    [Threat Intel Cache] as TICache
+    [Session Store] as SessionCache
+    [Rate Limit Counters] as RateCache
+  }
+}
+
+package "Service-Oriented Architecture (SOA) Layer" #LightBlue {
+  [Alert Ingestion Service] as AIS <<Service>> #LightCoral
+  [Enrichment & Correlation Service] as ECS <<Service>> #LightGreen
+  [Incident Management Service] as IMS <<Service>> #LightYellow
+  [Response Orchestration Service] as ROS <<Service>> #LightBlue
+  [Threat Intel Service] as TIS <<Service>> #LightPink
+  [Notification Service] as NS <<Service>> #Honeydew
+  [Audit Service] as AS <<Service>> #MistyRose
+  [Identity Service] as IS <<Service>> #LightGray
+}
+
+package "SOC Dashboard (MVC)" #AliceBlue {
+  [View Layer - React Components] as ViewLayer
+  [Controller Layer - REST Handlers] as ControllerLayer
+  [Model Layer - API Clients + DTOs] as ModelLayer
+}
+
+package "Alert Processing Pipeline (Chain of Responsibility)" #MistyRose {
+  [Deduplication Handler] as MH1
+  [Geo-IP Handler] as MH2
+  [Threat Intel Handler] as MH3
+  [Asset Context Handler] as MH4
+  [Classification Handler] as MH5
+}
+
+package "Event Subscribers (Observer)" #Honeydew {
+  [Dashboard Updater] as Obs1
+  [Audit Logger] as Obs2
+  [Notification Dispatcher] as Obs3
+  [Metrics Collector] as Obs4
+}
+
+Splunk ..> AIS : webhook / API poll
+CrowdStrike ..> AIS : streaming API
+Firewall ..> AIS : syslog / webhook
+
+Analyst ..> ViewLayer : monitors & responds
+Engineer ..> ViewLayer : configures rules
+
+ViewLayer --> ControllerLayer : HTTP / WebSocket
+ControllerLayer --> ModelLayer : data binding
+ControllerLayer --> AIS : REST
+ControllerLayer --> IMS : REST
+ControllerLayer --> ROS : REST
+ControllerLayer --> AS : REST
+ControllerLayer --> IS : REST
+
+AIS --> ECS : gRPC
+ECS --> IMS : gRPC
+ROS --> TIS : gRPC
+ROS --> NS : REST
+
+AIS --> MH1 : raw alerts
+MH1 --> MH2
+MH2 --> MH3
+MH3 --> MH4
+MH4 --> MH5
+MH5 --> ECS : enriched alerts
+
+TIS --> VT : HTTPS Adapter
+TIS --> MISP : HTTPS Adapter
+TIS --> Redis : cache lookups
+
+NS --> Email : SMTP Adapter
+NS --> Slack : HTTPS Adapter
+NS --> PagerDuty : HTTPS Adapter
+
+AIS ..> MessageBus : AlertIngested
+ECS ..> MessageBus : AlertEnriched
+IMS ..> MessageBus : IncidentCreated, IncidentStateChanged
+ROS ..> MessageBus : ResponseActionExecuted
+TIS ..> MessageBus : ThreatIntelUpdated
+
+MessageBus ..> Obs1 : push to dashboard
+MessageBus ..> Obs2 : write audit trail
+MessageBus ..> Obs3 : trigger alerts
+MessageBus ..> Obs4 : update metrics
+
+Obs1 --> ViewLayer : WebSocket push
+Obs2 --> AS : persist audit
+Obs3 --> NS : dispatch notification
+
+AIS ..> AlertDB : writes normalized alerts
+ECS ..> AlertDB : reads enriched data
+IMS ..> IncDB : reads/writes incident lifecycle
+AS ..> AuditDB : immutable writes
+TIS ..> TICache : cache reputation scores
+
+note right of AIS
+  Alert Ingestion Service
+  Singleton: IngestionConfigManager
+  Factory Method: AlertNormalizerFactory
+  Composite: Alert tree structure
+end note
+
+note right of ECS
+  Enrichment & Correlation
+  Chain of Responsibility: 5 handlers
+  Strategy: Correlation algorithms
+  Abstract Factory: EnrichmentProviderFactory
+end note
+
+note right of IMS
+  Incident Management
+  State: 7 incident lifecycle states
+end note
+
+note bottom of MessageBus
+  Event-Driven Backbone
+  Physical implementation of Observer pattern.
+  Publishers do not know subscribers.
+end note
+
+@enduml

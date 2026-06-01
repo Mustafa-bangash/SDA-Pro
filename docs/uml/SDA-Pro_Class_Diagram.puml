@@ -1,0 +1,193 @@
+@startuml SDA-Pro_Class_Diagram
+!theme plain
+skinparam packageStyle rectangle
+skinparam linetype ortho
+title SDA-Pro — Comprehensive Class Diagram (All 12 Patterns)
+
+package "domain.alert (Composite)" #LightCoral {
+  interface AlertComponent {
+    +getId(): UUID
+    +getSeverity(): Severity
+    +getTimestamp(): Instant
+    +add(component: AlertComponent): void
+    +remove(component: AlertComponent): void
+    +getChildren(): List<AlertComponent>
+  }
+  abstract class AbstractAlert {
+    -id: UUID
+    -severity: Severity
+    -timestamp: Instant
+    +getId(): UUID
+    +getSeverity(): Severity
+  }
+  class SingleAlert {
+    -rawPayload: String
+    -normalizedData: CanonicalAlert
+  }
+  class AlertCampaign {
+    -campaignName: String
+    -attackPattern: String
+    -children: List<AlertComponent>
+    +add(component: AlertComponent): void
+    +remove(component: AlertComponent): void
+    +getChildren(): List<AlertComponent>
+    +getMaxSeverity(): Severity
+  }
+  class IncidentCluster {
+    -clusterId: UUID
+    -correlationRule: String
+    -children: List<AlertComponent>
+    +add(component: AlertComponent): void
+    +remove(component: AlertComponent): void
+    +getChildren(): List<AlertComponent>
+  }
+  AlertComponent <|-- AbstractAlert
+  AbstractAlert <|-- SingleAlert
+  AbstractAlert <|-- AlertCampaign
+  AbstractAlert <|-- IncidentCluster
+  AlertCampaign "0..*" o-- "1" AlertComponent : children >
+  IncidentCluster "0..*" o-- "1" AlertComponent : children >
+}
+
+package "domain.incident (State)" #LightBlue {
+  class Incident {
+    -id: UUID
+    -currentState: IncidentState
+    +setState(state: IncidentState): void
+    +beginTriage(analystId: UUID): void
+    +initiateContainment(): void
+    +beginEradication(): void
+    +beginRecovery(): void
+    +close(): void
+    +getState(): IncidentState
+  }
+  interface IncidentState {
+    +beginTriage(incident: Incident): void
+    +initiateContainment(incident: Incident): void
+    +beginEradication(incident: Incident): void
+    +beginRecovery(incident: Incident): void
+    +close(incident: Incident): void
+    +getName(): String
+  }
+  class NewState
+  class UnderTriageState
+  class ContainmentState
+  class EradicationState
+  class RecoveryState
+  class PostIncidentReviewState
+  class ClosedState
+  Incident --> IncidentState
+  IncidentState <|.. NewState
+  IncidentState <|.. UnderTriageState
+  IncidentState <|.. ContainmentState
+  IncidentState <|.. EradicationState
+  IncidentState <|.. RecoveryState
+  IncidentState <|.. PostIncidentReviewState
+  IncidentState <|.. ClosedState
+}
+
+package "ingestion (Factory Method + Singleton)" #LightYellow {
+  interface AlertNormalizer {
+    +normalize(rawPayload: String): CanonicalAlert
+    +supports(sourceType: AlertSourceType): boolean
+  }
+  class SplunkNormalizer
+  class CrowdStrikeNormalizer
+  class FirewallNormalizer
+  class AlertNormalizerFactory {
+    -{static} normalizers: Map
+    +{static} register(type: AlertSourceType, normalizer: AlertNormalizer): void
+    +{static} createNormalizer(sourceType: AlertSourceType): AlertNormalizer
+  }
+  class IngestionConfigManager {
+    -{static} instance: IngestionConfigManager
+    -IngestionConfigManager()
+    +{static} getInstance(): IngestionConfigManager
+    +isIngestionEnabled(type: AlertSourceType): boolean
+  }
+  AlertNormalizer <|.. SplunkNormalizer
+  AlertNormalizer <|.. CrowdStrikeNormalizer
+  AlertNormalizer <|.. FirewallNormalizer
+  AlertNormalizerFactory ..> AlertNormalizer : creates >
+}
+
+package "enrichment (Chain of Responsibility + Abstract Factory)" #MistyRose {
+  abstract class EnrichmentHandler {
+    -nextHandler: EnrichmentHandler
+    +setNext(handler: EnrichmentHandler): EnrichmentHandler
+    +handle(alert: AlertComponent): EnrichmentResult
+    +{abstract} doEnrich(alert: AlertComponent): void
+  }
+  class DeduplicationHandler
+  class GeoIPHandler
+  class ThreatIntelHandler
+  class AssetContextHandler
+  class ClassificationHandler
+  EnrichmentHandler <|-- DeduplicationHandler
+  EnrichmentHandler <|-- GeoIPHandler
+  EnrichmentHandler <|-- ThreatIntelHandler
+  EnrichmentHandler <|-- AssetContextHandler
+  EnrichmentHandler <|-- ClassificationHandler
+  EnrichmentHandler "0..1" --> "0..1" EnrichmentHandler : next >
+
+  interface EnrichmentProviderFactory {
+    +createGeoProvider(): GeoLocationService
+    +createThreatIntelProvider(): ThreatIntelService
+    +createAssetProvider(): AssetInventoryService
+  }
+  class PremiumEnrichmentFactory
+  class StandardEnrichmentFactory
+  EnrichmentProviderFactory <|.. PremiumEnrichmentFactory
+  EnrichmentProviderFactory <|.. StandardEnrichmentFactory
+}
+
+package "strategy (Correlation)" #LightGreen {
+  interface CorrelationStrategy {
+    +correlate(alertData: String, result: EnrichmentResult): CorrelationResult
+    +getStrategyName(): String
+  }
+  class AggressiveCorrelationStrategy
+  class BalancedCorrelationStrategy
+  class ConservativeCorrelationStrategy
+  class CorrelationStrategySelector {
+    -strategy: CorrelationStrategy
+    +setStrategy(strategy: CorrelationStrategy): void
+    +selectStrategy(result: EnrichmentResult): CorrelationStrategy
+    +executeStrategy(alertData: String, result: EnrichmentResult): CorrelationResult
+  }
+  CorrelationStrategy <|.. AggressiveCorrelationStrategy
+  CorrelationStrategy <|.. BalancedCorrelationStrategy
+  CorrelationStrategy <|.. ConservativeCorrelationStrategy
+  CorrelationStrategySelector --> CorrelationStrategy
+}
+
+package "events (Observer + Singleton)" #LightGray {
+  interface Observer {
+    +update(event: DomainEvent): void
+  }
+  class EventBusPublisher {
+    -{static} instance: EventBusPublisher
+    -observers: Map
+    -EventBusPublisher()
+    +{static} getInstance(): EventBusPublisher
+    +attach(eventType: String, observer: Observer): void
+    +notify(event: DomainEvent): void
+    +publishAlertIngested(alert: AlertComponent): void
+    +publishIncidentStateChanged(incident: Incident): void
+  }
+  class DashboardUpdater
+  class AuditEventLogger
+  class NotificationDispatcher
+  Observer <|.. DashboardUpdater
+  Observer <|.. AuditEventLogger
+  Observer <|.. NotificationDispatcher
+  EventBusPublisher "1" o-- "0..*" Observer : observers >
+}
+
+Incident --> AlertComponent : aggregates >
+EnrichmentHandler --> AlertComponent : enriches >
+AlertNormalizerFactory ..> AlertComponent : produces >
+EventBusPublisher ..> DashboardUpdater : notifies >
+EventBusPublisher ..> AuditEventLogger : notifies >
+
+@enduml
