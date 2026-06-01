@@ -1,0 +1,272 @@
+openapi: 3.0.3
+info:
+  title: Incident Management Service API
+  description: |
+    Manages the full incident lifecycle through 7 states using the State pattern.
+    
+    Design Patterns Used:
+    - State: NewState -> UnderTriageState -> ContainmentState -> EradicationState
+             -> RecoveryState -> PostIncidentReviewState -> ClosedState
+    
+    State Transition Rules:
+    - NEW -> UNDER_TRIAGE (beginTriage)
+    - UNDER_TRIAGE -> CONTAINMENT (initiateContainment)
+    - CONTAINMENT -> ERADICATION (beginEradication)
+    - ERADICATION -> RECOVERY (beginRecovery)
+    - RECOVERY -> POST_INCIDENT_REVIEW (beginPostIncidentReview)
+    - POST_INCIDENT_REVIEW -> CLOSED (close)
+    - Any invalid transition returns 400 Bad Request
+  version: 1.0.0
+  contact:
+    name: Student A - Threat Pipeline Engineer
+
+servers:
+  - url: http://localhost:8083
+    description: Local development
+
+tags:
+  - name: Incidents
+    description: Incident CRUD operations
+  - name: Transitions
+    description: Incident state transition endpoints
+  - name: Health
+    description: Service health check
+
+paths:
+
+  /api/v1/incidents:
+    post:
+      tags: [Incidents]
+      summary: Create a new incident
+      description: |
+        Creates incident starting in NEW state.
+        Pattern - State: IncidentContext initialized with NewState automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIncidentRequest'
+            example:
+              severity: CRITICAL
+              source: enrichment-service
+      responses:
+        '200':
+          description: Incident created in NEW state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentResponse'
+
+    get:
+      tags: [Incidents]
+      summary: Get all incidents
+      responses:
+        '200':
+          description: List of all incidents with current state
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IncidentResponse'
+
+  /api/v1/incidents/{id}:
+    get:
+      tags: [Incidents]
+      summary: Get specific incident
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incident details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IncidentResponse'
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/triage:
+    post:
+      tags: [Transitions]
+      summary: Begin triage (NEW -> UNDER_TRIAGE)
+      description: Pattern - State - NewState.beginTriage() delegates transition
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transitioned to UNDER_TRIAGE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/containment:
+    post:
+      tags: [Transitions]
+      summary: Initiate containment (UNDER_TRIAGE -> CONTAINMENT)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transitioned to CONTAINMENT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/eradication:
+    post:
+      tags: [Transitions]
+      summary: Begin eradication (CONTAINMENT -> ERADICATION)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transitioned to ERADICATION
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/recovery:
+    post:
+      tags: [Transitions]
+      summary: Begin recovery (ERADICATION -> RECOVERY)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transitioned to RECOVERY
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/review:
+    post:
+      tags: [Transitions]
+      summary: Begin post incident review (RECOVERY -> POST_INCIDENT_REVIEW)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transitioned to POST_INCIDENT_REVIEW
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/{id}/close:
+    post:
+      tags: [Transitions]
+      summary: Close incident (POST_INCIDENT_REVIEW -> CLOSED)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Incident closed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransitionResponse'
+        '400':
+          description: Invalid state transition
+        '404':
+          description: Incident not found
+
+  /api/v1/incidents/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
+          content:
+            text/plain:
+              example: incident-management-service is running
+
+components:
+  schemas:
+    CreateIncidentRequest:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        source:
+          type: string
+
+    IncidentResponse:
+      type: object
+      properties:
+        incidentId:
+          type: string
+        currentState:
+          type: string
+          enum: [NEW, UNDER_TRIAGE, CONTAINMENT, ERADICATION, RECOVERY, POST_INCIDENT_REVIEW, CLOSED]
+        stateHistory:
+          type: string
+        message:
+          type: string
+
+    TransitionResponse:
+      type: object
+      properties:
+        incidentId:
+          type: string
+        newState:
+          type: string
+        message:
+          type: string
+        error:
+          type: string

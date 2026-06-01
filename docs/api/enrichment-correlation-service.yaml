@@ -1,0 +1,140 @@
+openapi: 3.0.3
+info:
+  title: Enrichment Correlation Service API
+  description: |
+    Enriches alerts through a Chain of Responsibility pipeline and
+    correlates them using interchangeable Strategy algorithms.
+    
+    Design Patterns Used:
+    - Chain of Responsibility: DeduplicationHandler -> GeoIPHandler -> ThreatIntelHandler -> AssetContextHandler -> ClassificationHandler
+    - Strategy: AggressiveCorrelationStrategy, BalancedCorrelationStrategy, ConservativeCorrelationStrategy
+    - Abstract Factory: PremiumEnrichmentFactory, StandardEnrichmentFactory
+  version: 1.0.0
+  contact:
+    name: Student A - Threat Pipeline Engineer
+
+servers:
+  - url: http://localhost:8082
+    description: Local development
+
+tags:
+  - name: Enrichment
+    description: Alert enrichment pipeline
+  - name: Correlation
+    description: Alert correlation and incident decision
+  - name: Health
+    description: Service health check
+
+paths:
+
+  /api/v1/enrichment/enrich:
+    post:
+      tags: [Enrichment]
+      summary: Run alert through full enrichment pipeline
+      description: |
+        Passes alert data through the full Chain of Responsibility pipeline:
+        Deduplication -> GeoIP -> ThreatIntel -> AssetContext -> Classification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertDataRequest'
+            example:
+              alertData: "src_ip=192.168.1.100,malicious=true,server=prod-db-01"
+      responses:
+        '200':
+          description: Enrichment result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrichmentResult'
+
+  /api/v1/enrichment/correlate:
+    post:
+      tags: [Correlation]
+      summary: Enrich and correlate alert
+      description: |
+        Runs full enrichment pipeline then applies correlation strategy.
+        Pattern - Strategy: CorrelationStrategySelector picks correct algorithm
+        based on threat score and asset criticality.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertDataRequest'
+            example:
+              alertData: "src_ip=192.168.1.100,malicious=true,server=prod-db-01"
+      responses:
+        '200':
+          description: Correlation result with recommended action
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CorrelationResult'
+
+  /api/v1/enrichment/history:
+    get:
+      tags: [Enrichment]
+      summary: Get enrichment history
+      responses:
+        '200':
+          description: List of all enrichment results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EnrichmentResult'
+
+  /api/v1/enrichment/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
+          content:
+            text/plain:
+              example: enrichment-correlation-service is running
+
+components:
+  schemas:
+    AlertDataRequest:
+      type: object
+      required: [alertData]
+      properties:
+        alertData:
+          type: string
+          description: Alert data string to enrich
+
+    EnrichmentResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [COMPLETE, DUPLICATE, FAILED]
+        isDuplicate:
+          type: boolean
+        geoLocation:
+          type: string
+        threatIntelScore:
+          type: string
+        assetCriticality:
+          type: string
+        classification:
+          type: string
+
+    CorrelationResult:
+      type: object
+      properties:
+        recommendedAction:
+          type: string
+          enum: [CREATE_INCIDENT, MONITOR_ONLY, ESCALATE, IGNORE]
+        strategyUsed:
+          type: string
+        confidence:
+          type: number
+        reasoning:
+          type: string
