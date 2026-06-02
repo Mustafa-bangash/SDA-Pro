@@ -1,0 +1,107 @@
+openapi: 3.0.3
+info:
+  title: Audit Service API
+  description: |
+    Immutable audit trail for all domain events in SDA-Pro.
+    Every enrichment, classification, and response action is logged here
+    via the Observer pattern — no service calls audit directly.
+
+    Design Patterns Used:
+    - Observer: AuditLogger subscriber writes every domain event automatically
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8087
+    description: Local development
+
+tags:
+  - name: Audit
+    description: Audit log access
+  - name: Compliance
+    description: Compliance reporting
+  - name: Health
+
+paths:
+  /api/v1/audit/logs:
+    get:
+      tags: [Audit]
+      summary: Get all audit log entries
+      responses:
+        '200':
+          description: All immutable audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/v1/audit/logs/incident/{incidentId}:
+    get:
+      tags: [Audit]
+      summary: Get audit trail for a specific incident
+      parameters:
+        - name: incidentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit entries for the incident
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /api/v1/audit/compliance/report:
+    get:
+      tags: [Compliance]
+      summary: Generate GDPR/SOC2 compliance report
+      responses:
+        '200':
+          description: Compliance report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generatedAt:
+                    type: string
+                  totalEvents:
+                    type: integer
+                  complianceStandards:
+                    type: array
+                    items:
+                      type: string
+                  immutableStorage:
+                    type: boolean
+
+  /api/v1/audit/log:
+    post:
+      tags: [Audit]
+      summary: Manually log an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                eventType:
+                  type: string
+                eventData:
+                  type: string
+      responses:
+        '200':
+          description: Logged successfully
+
+  /api/v1/audit/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service running

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 // PATTERN: Factory Method (Product)
 // RATIONALE: All normalizers produce this unified canonical format
-// regardless of the original source format (Splunk, CrowdStrike, Firewall)
+// regardless of the original source format (Splunk, CrowdStrike, Firewall, CloudSIEM)
 public class CanonicalAlert {
 
     private UUID id;
@@ -15,15 +15,19 @@ public class CanonicalAlert {
     private Severity severity;
     private String eventType;
     private String description;
+    private String summary;
     private Instant timestamp;
+    private Instant detectedAt;
     private String rawPayload;
 
     public CanonicalAlert() {
         this.id = UUID.randomUUID();
         this.timestamp = Instant.now();
+        this.detectedAt = Instant.now();
     }
 
     public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
     public String getSourceType() { return sourceType; }
     public void setSourceType(String sourceType) { this.sourceType = sourceType; }
     public String getSourceIp() { return sourceIp; }
@@ -36,7 +40,11 @@ public class CanonicalAlert {
     public void setEventType(String eventType) { this.eventType = eventType; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
     public Instant getTimestamp() { return timestamp; }
+    public Instant getDetectedAt() { return detectedAt; }
+    public void setDetectedAt(Instant detectedAt) { this.detectedAt = detectedAt; }
     public String getRawPayload() { return rawPayload; }
     public void setRawPayload(String rawPayload) { this.rawPayload = rawPayload; }
 
