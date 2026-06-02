@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Identity Service API
+  description: |
+    Manages SOC analyst authentication, authorization, and session management.
+    Issues and validates session tokens stored in Redis.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8088
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: Analysts
+  - name: Health
+
+paths:
+  /api/v1/identity/login:
+    post:
+      tags: [Auth]
+      summary: Analyst login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  analystId:
+                    type: string
+                  role:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+  /api/v1/identity/logout:
+    post:
+      tags: [Auth]
+      summary: Analyst logout
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /api/v1/identity/analysts/{id}:
+    get:
+      tags: [Analysts]
+      summary: Get analyst profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analyst profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  analystId:
+                    type: string
+                  username:
+                    type: string
+                  role:
+                    type: string
+                  clearanceLevel:
+                    type: string
+
+  /api/v1/identity/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service running
