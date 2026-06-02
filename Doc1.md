@@ -156,6 +156,7 @@ classDiagram
   ThreatIntelProvider <|.. CachingProxy
 
 
+
 6.2 Component Diagram (SOA Architecture)
 
 This diagram displays the Service-Oriented Architecture boundaries, showing how the different microservices, message bus, and databases connect to each other.
@@ -201,6 +202,7 @@ graph TD
   Response <--> PG
 
 
+
 6.3 Sequence Diagram: Alert Ingestion & Enrichment
 
 This sequence traces the exact timeline of an incoming alert as it moves from the SIEM, through the Factory Method normalizers, down the Chain of Responsibility pipeline, and into the State manager.
@@ -222,6 +224,7 @@ sequenceDiagram
   Pipeline->>State: create/update Incident
   State-->>State: transitionState(New -> Triage)
   State-->>Ingest: Incident Saved Successfully
+
 
 
 6.4 Sequence Diagram: Incident Response Orchestration
@@ -248,6 +251,7 @@ sequenceDiagram
   EventBus-->>Analyst: WebSocket UI Update
 
 
+
 7. Individual Team Reflections
 
 Student A: Mustafa khan (53312) - Threat Pipeline Engineer
@@ -264,4 +268,4 @@ Implementing the Observer pattern via a real message broker (RabbitMQ) showed me
 
 8. Conclusion
 
-SDA-Pro successfully meets all requirements of the project charter. It ingests heterogeneous alerts, passes them down a structured enrichment chain, checks external databases safely via proxies, uses strategic playbooks to respond, and displays everything on a real-time MVC dashboard. The strict adherence to the 12 design patterns and 4 architectural styles ensured our codebase remained clean, modular, and highly extensible for future security operations.
+SDA-Pro successfully meets all requirements of the project charter. It ingests heterogeneous alerts, passes them down a structured enrichment chain, checks external databases safely via proxies, uses strategic playbooks to respond, and displays everything on a real-time MVC dashboard. The strict adherence to the 12 design patterns and 4 architectural styles ensured our codebase remained clean, modular, and highly extensible for future security operations
