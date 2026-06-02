@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: |
+    Dispatches alerts to SOC analysts.
+    
+    Design Patterns Used:
+    - Abstract Factory: EnterpriseNotificationFactory creates related families of channels (Email, Slack, PagerDuty).
+  version: 1.0.0
+  contact:
+    name: Student B - Integration & Response Engineer
+servers:
+  - url: http://localhost:8086
+    description: Local development
+tags:
+  - name: Notification
+    description: Alert dispatching
+paths:
+  /api/v1/notifications/dispatch:
+    post:
+      tags:
+        - Notification
+      summary: Dispatch notification to configured channels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: "CRITICAL: Ransomware detected on prod-db-01"
+      responses:
+        '200':
+          description: Notifications dispatched successfully
+          content:
+            text/plain:
+              example: "Notifications dispatched successfully."
+  /api/v1/notifications/health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is running
