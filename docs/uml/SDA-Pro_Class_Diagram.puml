@@ -1,9 +1,9 @@
-@startuml SDA-Pro_Class_Diagram
+@startuml
 !theme plain
 skinparam packageStyle rectangle
 skinparam linetype ortho
-title SDA-Pro — Comprehensive Class Diagram (All 12 Patterns) '
-============================================================
+title SDA-Pro — Comprehensive Class Diagram (All 12 Patterns)
+' ============================================================
 ' PACKAGE: domain.alert — Composite Pattern
 ' ============================================================
 package "domain.alert (Composite)" #LightCoral {
@@ -104,7 +104,7 @@ IncidentState <|.. ClosedState
 ' ============================================================
 package "execution.response (Strategy + Factory + Decorator + Facade)" #LightGreen {
 interface ResponseStrategy {
-+determineActions(incident: Incident, context: ResponseContext): List<ResponseActi
++determineActions(incident: Incident, context: ResponseContext): List<ResponseAction>
 +getName(): String
 +getDescription(): String
 }
