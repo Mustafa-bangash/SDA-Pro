@@ -1,17 +1,21 @@
 {
   "name": "soc-dashboard",
   "version": "1.0.0",
-  "description": "SOC Analyst Dashboard — MVC architecture with Observer-driven real-time updates",
-  "main": "src/app.js",
-  "scripts": {
-    "start": "node src/app.js",
-    "test": "jest"
-  },
+  "description": "SOC Analyst Dashboard - MVC React Application",
+  "private": true,
   "dependencies": {
-    "express": "^4.18.2",
-    "ws": "^8.14.2"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "axios": "^1.6.0"
   },
-  "devDependencies": {
-    "jest": "^29.7.0"
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test"
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead"],
+    "development": ["last 1 chrome version"]
   }
 }
