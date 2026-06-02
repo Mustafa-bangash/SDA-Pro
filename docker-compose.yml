@@ -17,6 +17,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/migration/V1__initial_schema.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - sdapro-network
     healthcheck:
@@ -131,6 +132,151 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  # ─────────────────────────────────────────
+  # STUDENT B SERVICES
+  # ─────────────────────────────────────────
+
+  response-orchestration-service:
+    build:
+      context: ./services/response-orchestration-service
+      dockerfile: Dockerfile
+    container_name: sdapro-response
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  threat-intel-service:
+    build:
+      context: ./services/threat-intel-service
+      dockerfile: Dockerfile
+    container_name: sdapro-threat-intel
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: sdapro-notification
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  # ─────────────────────────────────────────
+  # STUDENT C SERVICES
+  # ─────────────────────────────────────────
+
+  audit-service:
+    build:
+      context: ./services/audit-service
+      dockerfile: Dockerfile
+    container_name: sdapro-audit
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: sdapro
+      SPRING_RABBITMQ_PASSWORD: sdapro123
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  identity-service:
+    build:
+      context: ./services/identity-service
+      dockerfile: Dockerfile
+    container_name: sdapro-identity
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sdapro
+      SPRING_DATASOURCE_USERNAME: sdapro
+      SPRING_DATASOURCE_PASSWORD: sdapro123
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sdapro-network
+    restart: on-failure
+
+  soc-dashboard:
+    build:
+      context: ./soc-dashboard
+      dockerfile: Dockerfile
+    container_name: sdapro-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_ALERT_SERVICE_URL: http://localhost:8081
+      REACT_APP_INCIDENT_SERVICE_URL: http://localhost:8083
+      REACT_APP_RESPONSE_SERVICE_URL: http://localhost:8084
+      REACT_APP_AUDIT_SERVICE_URL: http://localhost:8087
+    depends_on:
+      - alert-ingestion-service
+      - incident-management-service
+      - response-orchestration-service
     networks:
       - sdapro-network
     restart: on-failure
