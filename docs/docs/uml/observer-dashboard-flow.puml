@@ -1,0 +1,12 @@
+@startuml
+
+AlertIngested
+-> EventBusPublisher
+
+EventBusPublisher
+-> DashboardSubscriber
+
+DashboardSubscriber
+-> AlertStream
+
+@enduml
